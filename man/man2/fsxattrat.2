@@ -1,0 +1,103 @@
+.\" Copyright (c) 2024 by Red Hat
+.\"
+.\" SPDX-License-Identifier: Linux-man-pages-copyleft
+.\"
+.\"
+.TH fsxattrat 2 (date) "Linux man-pages (unreleased)"
+.SH NAME
+getfsxattrat \- operate with inode extended attributes relative to directory file descriptor
+.SH SYNOPSYS
+.nf
+.B #include <linux/fs.h>
+.B #include <sys/stat.h>
+.B #include <unistd.h>
+.P
+.BI "int getfsxattrat(const int " dfd ", const char " *path ", const struct stat " *stat ", struct fsxattr " *fsx ");
+.BI "int setfsxattrat(const int " dfd ", const char " *path ", const struct stat " *stat ", struct fsxattr " *fsx ");
+.fi
+.SH DESCRIPTION
+Various Linux filesystems support the notion of
+.IR "inode flags"
+attributes that modify the semantics of files and directories.
+These flags can be retrieved and modified with FS_IOC_GETXATTR ioctls. These
+getfsxattrat and setfsxattrat syscalls do the same but can be called on files
+without opening them. This is especially handy with special files such as FIFO,
+SOCK, BLK etc. as opening them returns special inode instead of filesystem's
+one.
+.P
+The syscalls take parent directory file descriptor
+.I dfd,
+.I path
+to the child together with
+.I struct fsxattr
+pointer. The latter is used to return or set attributes on the inode. The
+.I at_flags 
+is not used.
+.P
+For special files, only FS_XFLAG_PROJINHERIT can be set.
+.P
+In order to change the inode flags of a file using the
+.B setfsxattrat()
+syscall, the effective user ID of the caller must match the owner of the file,
+or the caller must have the
+.B CAP_FOWNER
+capability.
+.P
+The type of the 
+.I fsx
+argument given to the
+.B setfsxattrat
+and
+.B getfsxattrat
+operations is pointer to
+.I struct fsxattr
+the implication of which is in the kernel source file
+.I include/uapi/linux/fs.h.
+.SH RETURN VALUE
+On success, both syscalls returns 0 and
+.B getfsxattrat
+fills structure at
+.B fsx.
+On failure, returns an error code.
+
+.SH ERRORS
+.TP
+.B EPERM
+Caller is not a file owner and does not have
+.B CAP_FOWNER
+
+.TP
+.B EBADF
+Invalid parent directory or file at
+.I path
+is not belong to the same filesystem.
+
+.TP
+.B EFAULT
+Invalid
+.I fsx
+pointer.
+
+.TP
+.B ENOIOCTLCMD
+This operation is not supported on this filesystem.
+
+.SH EXAMPLES
+.EE
+.SS Program source (fsxattrat.c)
+.\" SRC BEGIN (fsxattrat.c)
+.EX
+#include <linux/fs.h>
+\&
+int attr;
+int flags = 0;
+struct fsxattr attr;
+dfd = open("dir", ...);
+.EE
+.\" SRC END
+.SH SEE ALSO
+.BR chattr(2),
+.BR lsattr(2),
+.BR xfsctl(3),
+.BR ext4 (5),
+.BR xfs (5),
